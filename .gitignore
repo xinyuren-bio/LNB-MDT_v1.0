@@ -1,3 +1,6 @@
 __pycache__/
 .git/
-.pyc
+.pyc.venv/
+.idea/
+__pycache__/
+*.pyc
