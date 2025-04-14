@@ -83,8 +83,6 @@ class Height(AnalysisBase):
 
         self.headSp = {sp: ' '.join(residuesGroup[sp][0]) for sp in residuesGroup}
         self.tailSp = {sp: ' '.join(residuesGroup[sp][-1]) for sp in residuesGroup}
-        print("Head atoms:", self.headSp)
-        print("Tail atoms:", self.tailSp)
 
         self.headAtoms = self.u.atoms[[]]
         self.tailAtoms = self.u.atoms[[]]
