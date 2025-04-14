@@ -18,37 +18,88 @@ __all__ = ['Cluster']
 
 
 class Cluster(AnalysisBase):
-    def __init__(self, universe, residues_group, file_path=None, cutoff=12):
+    """
+    A class for analyzing lipid clustering in a bilayer system.
+    
+    This class identifies and analyzes clusters of lipid molecules based on their
+    spatial proximity. It uses a distance-based criterion to determine which lipids
+    belong to the same cluster.
+    """
+    
+    def __init__(self, universe, residueGroup: dict, cutoff: float = None, file_path: str = None):
+        """
+        Initialize the Cluster analysis class.
+        
+        Parameters
+        ----------
+        universe : MDAnalysis.Universe
+            The MDAnalysis Universe object containing the molecular dynamics trajectory.
+            This should include both the structure file (e.g., .gro) and trajectory file (e.g., .xtc).
+            
+        residueGroup : dict
+            A dictionary specifying the atoms to use for clustering analysis.
+            Format: {'lipid_name': ['atom_names']}
+            Example: {
+                'DPPC': ['PO4'],
+                'CHOL': ['ROH']
+            }
+            
+        cutoff : float, optional
+            The distance cutoff (in Å) used to determine if two lipids belong to the same cluster.
+            If two lipids are closer than this distance, they are considered to be in the same cluster.
+            If None, a default value will be used.
+            
+        file_path : str, optional
+            The path where the analysis results will be saved as a CSV file.
+            If None, results will not be saved to disk.
+            
+        Attributes
+        ----------
+        headAtoms : MDAnalysis.AtomGroup
+            The selected atoms of all lipid molecules used for clustering.
+            
+        _n_residues : int
+            The total number of lipid molecules in the system.
+            
+        resids : numpy.ndarray
+            The residue IDs of all lipid molecules.
+            
+        resnames : numpy.ndarray
+            The residue names of all lipid molecules.
+            
+        results.Cluster : numpy.ndarray
+            A 2D array storing the cluster assignments for all lipid molecules across all frames.
+            Shape: (n_residues, n_frames)
+            
+        cutoff : float
+            The distance cutoff used for clustering.
+        """
         super().__init__(universe.trajectory)
-
         self.u = universe
-
+        self.residues = list(residueGroup)
         self.cutoff = cutoff
-
         self.file_path = file_path
 
-        sel_residues_and_atoms = make_data(residues_group)
-        self.atoms_search = self.u.atoms[[]]
+        # Convert atom names to space-separated strings
+        self.atomSp = {sp: ' '.join(residueGroup[sp]) for sp in residueGroup}
+        print("Atoms for clustering:", self.atomSp)
 
-        for str_sel in sel_residues_and_atoms:
-            self.atoms_search += self.u.select_atoms(str_sel, updating=False)
+        # Initialize atom selection
+        self.headAtoms = self.u.atoms[[]]
 
-        if self.atoms_search.n_residues <= 1:
-            raise ValueError('No atoms found in the selection')
+        # Select atoms for all specified lipid types
+        for i in range(len(self.residues)):
+            self.headAtoms += self.u.select_atoms('resname %s and name %s'
+                                                  % (self.residues[i], self.atomSp[self.residues[i]]), updating=False)
 
-        self.resids_search_ori = self.atoms_search.resindices
-        self.resids_residues_ori = self.atoms_search.residues.resids
-        self.resids_search_sorted = (
-            scipy.stats.rankdata(
-                self.resids_search_ori,
-                method="dense",
-            )
-            - 1
-        )
+        # Set basic attributes
+        self._n_residues = self.headAtoms.n_residues
+        self.resids = self.headAtoms.resids
+        self.resnames = self.headAtoms.resnames
         self.results.Cluster = None
-        self.results.Resindices = None
 
-        self.parameters = str(residues_group) + ' cutoff:' + str(self.cutoff)
+        # Record analysis parameters
+        self.parameters = str(residueGroup) + 'Cutoff:' + str(self.cutoff)
 
     @property
     def Cluster(self):
@@ -63,7 +114,7 @@ class Cluster(AnalysisBase):
         self.results.Resindices = np.full(self.n_frames, fill_value=0, dtype=object)
 
     def _single_frame(self):
-        positions_single_frame = self.atoms_search.positions
+        positions_single_frame = self.headAtoms.positions
         pairs = capped_distance(
             positions_single_frame
             , positions_single_frame
@@ -72,7 +123,7 @@ class Cluster(AnalysisBase):
             , return_distances=False
         )
 
-        ref, nei = np.unique(self.resids_search_sorted[pairs], axis=0).T
+        ref, nei = np.unique(self.resids[pairs], axis=0).T
 
         index_needs = ref != nei
 
@@ -84,7 +135,7 @@ class Cluster(AnalysisBase):
         neighbours_frame = scipy.sparse.csr_matrix(
             (data, (ref, nei))
             , dtype=np.int8
-            , shape=(self.atoms_search.n_residues, self.atoms_search.n_residues)
+            , shape=(self._n_residues, self._n_residues)
         )
 
         _, com_labels = scipy.sparse.csgraph.connected_components(neighbours_frame)
@@ -92,7 +143,7 @@ class Cluster(AnalysisBase):
         unique_com_labels, counts = np.unique(com_labels, return_counts=True)
         largest_label = unique_com_labels[np.argmax(counts)]
         self.results.Cluster[self._frame_index] = max(counts)
-        self.results.Resindices[self._frame_index] = self.resids_residues_ori[com_labels == largest_label]
+        self.results.Resindices[self._frame_index] = self.resnames[com_labels == largest_label]
 
     def _conclude(self):
         if self.file_path:

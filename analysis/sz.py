@@ -20,18 +20,93 @@ __all__ = ['SZ']
 
 
 class SZ(AnalysisBase):
-    def __init__(self, universe, residuesGroup: dict, chain:str, k: int = None, path=None):
+    """
+    A class for analyzing the SZ (Saffman-Delbrück) model of membrane dynamics.
+    
+    This class implements the Saffman-Delbrück model to analyze the dynamics of
+    membrane proteins and lipids. It calculates the diffusion coefficients and
+    other related properties based on the SZ model.
+    """
+    
+    def __init__(self, universe, residueGroup: dict, chain: str = None, k: int = None, file_path: str = None):
         """
-        format:
-        residuesGroup - > { 'DPPC': ['PO4'], 'DAPC' : ['PO4']}
-        chain - > 'Chain A'
+        Initialize the SZ analysis class.
+        
+        Parameters
+        ----------
+        universe : MDAnalysis.Universe
+            The MDAnalysis Universe object containing the molecular dynamics trajectory.
+            This should include both the structure file (e.g., .gro) and trajectory file (e.g., .xtc).
+            
+        residueGroup : dict
+            A dictionary specifying the head atoms for each lipid type.
+            Format: {'lipid_name': ['head_atom_names']}
+            Example: {
+                'DPPC': ['PO4'],
+                'CHOL': ['ROH']
+            }
+            
+        chain : str, optional
+            The lipid chain to analyze ('sn1', 'sn2', or 'both').
+            This parameter determines which lipid chains are included in the analysis.
+            
+        k : int, optional
+            The number of nearest neighbors to use for local analysis.
+            A larger k value results in smoother results but requires more computation.
+            If None, a default value will be used.
+            
+        file_path : str, optional
+            The path where the analysis results will be saved as a CSV file.
+            If None, results will not be saved to disk.
+            
+        Attributes
+        ----------
+        headAtoms : MDAnalysis.AtomGroup
+            The selected head atoms of all lipid molecules.
+            
+        _n_residues : int
+            The total number of lipid molecules in the system.
+            
+        resids : numpy.ndarray
+            The residue IDs of all lipid molecules.
+            
+        resnames : numpy.ndarray
+            The residue names of all lipid molecules.
+            
+        results.SZ : numpy.ndarray
+            A 2D array storing the SZ analysis results for all lipid molecules across all frames.
+            Shape: (n_residues, n_frames)
+            
+        chain : str
+            The lipid chain being analyzed.
         """
         super().__init__(universe.trajectory)
         self.u = universe
-        self.k = k
-        self.file_path = path
-        self.residues = list(residuesGroup)
+        self.residues = list(residueGroup)
         self.chain = chain
+        self.k = k
+        self.file_path = file_path
+
+        # Convert head atom names to space-separated strings
+        self.headSp = {sp: ' '.join(residueGroup[sp]) for sp in residueGroup}
+        print("Head atoms:", self.headSp)
+
+        # Initialize atom selection
+        self.headAtoms = self.u.atoms[[]]
+
+        # Select head atoms for all specified lipid types
+        for i in range(len(self.residues)):
+            self.headAtoms += self.u.select_atoms('resname %s and name %s'
+                                                  % (self.residues[i], self.headSp[self.residues[i]]), updating=False)
+
+        # Set basic attributes
+        self._n_residues = self.headAtoms.n_residues
+        self.resids = self.headAtoms.resids
+        self.resnames = self.headAtoms.resnames
+        self.results.SZ = None
+
+        # Record analysis parameters
+        self.parameters = str(residueGroup) + 'Chain:' + str(self.chain) + 'K:' + str(self.k)
 
         self.tail = None
         self.headSp = {}
@@ -45,8 +120,8 @@ class SZ(AnalysisBase):
             self.tail = '??B'
         else:
             self.tail = '??A ??B'
-        for sp in residuesGroup:
-            self.headSp[sp] = residuesGroup[sp][0]
+        for sp in residueGroup:
+            self.headSp[sp] = residueGroup[sp][0]
 
         # 将选择的头部原子和尾部原子按照残基名称进行排序
             self.headAtoms += self.u.select_atoms('resname %s and name %s'
@@ -82,8 +157,6 @@ class SZ(AnalysisBase):
             sp: i.n_residues for sp, i in self.headAtoms.groupby('resnames').items()
         }
 
-        self.parameters = str(residuesGroup)+ ' K:' + str(self.k) + ' Chain:' + self.chain
-        self.results.SZ = None
     def _prepare(self):
         self.results.SZ = np.full([self._n_residues, self.n_frames],
                                   fill_value=np.NaN)

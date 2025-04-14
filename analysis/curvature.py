@@ -15,38 +15,96 @@ __all__ = ['Curvature']
 
 
 class Curvature(AnalysisBase):
-    def __init__(self, u, residueGroup: dict, k: int, path=None, method='mean'):
-        super().__init__(u.trajectory)
-        # self.residues_dict = residueGroup
-        self.u = u
+    """
+    A class for calculating the mean curvature of a lipid bilayer.
+    
+    This class analyzes the local curvature of a lipid bilayer by calculating
+    the mean curvature at each point using the positions of lipid head groups.
+    The curvature is calculated using the local normal vectors and their derivatives.
+    """
+    
+    def __init__(self, universe, residueGroup: dict, k: int = None, file_path: str = None, method: str = 'mean'):
+        """
+        Initialize the Curvature analysis class.
+        
+        Parameters
+        ----------
+        universe : MDAnalysis.Universe
+            The MDAnalysis Universe object containing the molecular dynamics trajectory.
+            This should include both the structure file (e.g., .gro) and trajectory file (e.g., .xtc).
+            
+        residueGroup : dict
+            A dictionary specifying the head atoms for each lipid type.
+            Format: {'lipid_name': ['head_atom_names']}
+            Example: {
+                'DPPC': ['PO4'],
+                'CHOL': ['ROH']
+            }
+            
+        k : int, optional
+            The number of nearest neighbors to use for calculating local curvature.
+            A larger k value results in smoother curvature but requires more computation.
+            If None, a default value will be used.
+            
+        file_path : str, optional
+            The path where the analysis results will be saved as a CSV file.
+            If None, results will not be saved to disk.
+            
+        method : str, optional
+            The method to use for curvature calculation.
+            Options: 'mean' (default) or 'gaussian'
+            - 'mean': calculates the mean curvature (H)
+            - 'gaussian': calculates the Gaussian curvature (K)
+            
+        Attributes
+        ----------
+        headAtoms : MDAnalysis.AtomGroup
+            The selected head atoms of all lipid molecules.
+            
+        _n_residues : int
+            The total number of lipid molecules in the system.
+            
+        resids : numpy.ndarray
+            The residue IDs of all lipid molecules.
+            
+        resnames : numpy.ndarray
+            The residue names of all lipid molecules.
+            
+        results.Curvature : numpy.ndarray
+            A 2D array storing the curvature values for all lipid molecules across all frames.
+            Shape: (n_residues, n_frames)
+            
+        method : str
+            The method used for curvature calculation ('mean' or 'gaussian').
+        """
+        super().__init__(universe.trajectory)
+        self.u = universe
+        self.residues = list(residueGroup)
         self.k = k
-        self.filePath = path
+        self.file_path = file_path
         self.method = method
 
-        self.residues = list(residueGroup)
+        # Convert head atom names to space-separated strings
+        self.headSp = {sp: ' '.join(residueGroup[sp]) for sp in residueGroup}
+        print("Head atoms:", self.headSp)
 
+        # Initialize atom selection
         self.headAtoms = self.u.atoms[[]]
-        self.headSp = {}
 
+        # Select head atoms for all specified lipid types
         for i in range(len(self.residues)):
-            sp = self.residues[i]
-
-            self.headSp[sp] = residueGroup[sp][0]
-
             self.headAtoms += self.u.select_atoms('resname %s and name %s'
-                                                  % (sp, self.headSp[sp]), updating=False)
+                                                  % (self.residues[i], self.headSp[self.residues[i]]), updating=False)
 
+        # Set basic attributes
         self._n_residues = self.headAtoms.n_residues
-        self.resnames = self.headAtoms.resnames
         self.resids = self.headAtoms.resids
-        self._headMask = {
-            sp: self.resnames == sp for sp in self.residues
-        }
+        self.resnames = self.headAtoms.resnames
+        self.results.Curvature = None
 
-        self.results.MeanCurvature = None
-        self.results.GussainCurvature = None
-        self.results.Normal = None
-        self.parameters = str(residueGroup) + 'K:' + str(self.k) + 'method:' + self.method
+        # Record analysis parameters
+        self.parameters = str(residueGroup) + 'K:' + str(self.k) + 'Method:' + method
+
     @property
     def MeanCurvature(self):
         return self.results.MeanCurvature
@@ -98,12 +156,12 @@ class Curvature(AnalysisBase):
                 self.results.GussainCurvature[i, self._frame_index] = k_gussain
 
     def _conclude(self):
-        if self.filePath:
+        if self.file_path:
             lipids_ratio = {sp: self.u.select_atoms(f'resname {sp}').n_residues for sp in self.residues}
             dict_parameter = {'step': self.step, 'n_frames': self.n_frames, 'resids': self.resids,
                               'resnames': self.resnames,
                               'positions': self.headAtoms.positions, 'results': self.results.MeanCurvature,
-                              'file_path': self.filePath, 'description': 'Mean Curvature(nm -1)',
+                              'file_path': self.file_path, 'description': 'Mean Curvature(nm -1)',
                               'parameters': self.parameters, 'lipids_type': lipids_ratio}
             WriteExcelLipids(**dict_parameter).run()
 
