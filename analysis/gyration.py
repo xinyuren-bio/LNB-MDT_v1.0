@@ -32,6 +32,8 @@ class Gyration_py(AnalysisBase):
         self._n_residues = self.headAtoms.n_residues
         self.results.Gyration = None
 
+        self.parameters = str(residuesGroup)
+
     def _prepare(self):
         self.results.Gyration = np.zeros([self.n_frames])
 
@@ -49,10 +51,13 @@ class Gyration_py(AnalysisBase):
                 from .analysis_base import WriteExcelBubble
             except:
                 from analysis_base import WriteExcelBubble
-            dict_parameter = {'step': self.step, 'n_frames': self.n_frames,
-                              'results': self.results.Gyration,
-                              'file_path': self.filePath, 'description': 'Gyration(nm)',
-                              'value_divition': 1}
+            dict_parameter = {
+                'frames': [i for i in range(self.start, self.stop, self.step)]
+                , 'results': self.results.Gyration
+                , 'file_path': self.filePath
+                , 'description': 'Gyration(nm)'
+                , 'parameters': self.parameters
+                 }
             WriteExcelBubble(**dict_parameter).run()
 
 
@@ -72,7 +77,11 @@ def get_radius_of_gyration(positions, masses):
 if __name__ == "__main__":
 
     import MDAnalysis as mda
-    u = mda.Universe('E:/ach.gro', 'E:/ach.xtc')
+
+    gro_file = "../cases/lnb.gro"
+    xtc_file = "../cases/md.xtc"
+    csv_file = "../cases/csv/area_step5_lnb.csv"
+    u = mda.Universe(gro_file, xtc_file)
     cls1 = Gyration_py(u, {'DPPC':['PO4'], 'DAPC':['PO4'], 'CHOL':['ROH']}, filePath='E:/untitled1.csv')
     cls1.run(0, 100)
 

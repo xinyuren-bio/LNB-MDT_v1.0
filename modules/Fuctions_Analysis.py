@@ -628,7 +628,7 @@ class MeanCurvatureLayout(AnalysisLayout):
                                )
         self.cls = Curvature(self.Box.u
                              , self.Box.get_config('MeanCurvature').MeanCurvatureHeadAtoms
-                             , path=self.Info.path_result
+                             , file_path=self.Info.path_result
                              , k=self.Info.K
                              , method='mean')
 

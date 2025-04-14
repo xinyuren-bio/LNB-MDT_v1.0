@@ -120,21 +120,31 @@ class Height(AnalysisBase):
     def _conclude(self):
         if self.file_path:
             lipids_ratio = {sp: self.u.select_atoms(f'resname {sp}').n_residues for sp in self.residues}
-            dict_parameter = {'step':self.step, 'n_frames': self.n_frames, 'resids':self.resids, 'resnames':self.resnames,
-             'positions':self.headAtoms.positions, 'results':self.results.Height, 'file_path':self.file_path,'description':'Height(nm)' ,
-                              'parameters': self.parameters, 'lipids_type':lipids_ratio}
+            dict_parameter = {
+                'frames': [i for i in range(self.start, self.stop, self.step)],
+                'resids': self.resids,
+                'resnames': self.resnames,
+                'positions': self.headAtoms.positions,
+                'results': self.results.Height,
+                'file_path': self.file_path,
+                'description': 'Height',
+                'parameters': self.parameters,
+                'lipids_type': lipids_ratio
+            }
             WriteExcelLipids(**dict_parameter).run()
+        else:
+            return self.results.Height
 
 
 if __name__ == "__main__":
     import time
     t1 = time.time()
-    gro_file = "/Users/renxinyu/PycharmProjects/PythonProject/LNB-MDT/cases/lnb.gro"
-    xtc_file = "/Users/renxinyu/PycharmProjects/PythonProject/LNB-MDT/cases/md.xtc"
-    csv_file = "/Users/renxinyu/PycharmProjects/PythonProject/LNB-MDT/cases/csv/height_step5_lnb.csv"
+    gro_file = "../cases/lnb.gro"
+    xtc_file = "../cases/md.xtc"
+    csv_file = "../cases/csv/area_step5_lnb.csv"
     u = mda.Universe(gro_file, xtc_file)
     dict_residue = {'DPPC': (['PO4'], ['C4B', 'C4A']), 'DUPC':(['PO4'], ['C3A', 'C4B']), 'CHOL':(['ROH'], ['R5'])}
     cls2 = Height(u, dict_residue, k=21, file_path=csv_file)
-    cls2.run(verbose=True)
+    cls2.run(start=10, step=5, verbose=True)
     t2 = time.time()
     print(t2 - t1)

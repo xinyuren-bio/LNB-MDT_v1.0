@@ -162,11 +162,17 @@ class Area(AnalysisBase):
     def _conclude(self):
         if self.file_path:
             lipids_ratio = {sp: self.u.select_atoms(f'resname {sp}').n_residues for sp in self.residues}
-            dict_parameter = {'step': self.step, 'n_frames': self.n_frames, 'resids': self.resids,
-                              'resnames': self.resnames,
-                              'positions': self.headAtoms.positions, 'results': self.results.Area,
-                              'file_path': self.file_path, 'description': 'Area(nm^2)',
-                              'parameters': self.parameters, 'lipids_type': lipids_ratio}
+            dict_parameter = {
+                'frames': [i for i in range(self.start, self.stop, self.step)]
+                , 'resids': self.resids
+                , 'resnames': self.resnames
+                , 'positions': self.headAtoms.positions
+                , 'results': self.results.Area
+                , 'file_path': self.file_path
+                , 'description': 'Area(nm^2)'
+                , 'parameters': self.parameters
+                , 'lipids_type': lipids_ratio
+            }
             WriteExcelLipids(**dict_parameter).run()
 
 
@@ -179,11 +185,13 @@ def polygon_area(vertices):
 
 if __name__ == "__main__":
     import time
-    # u = mda.Universe("E:/ach.gro", 'E:/ach.xtc')
-    u = mda.Universe(r"E:\awork\lnb\ts2cg\nc3_inner.gro")
-    # cls2 = Area(u, {'DPPC': ['PO4'], 'DUPC':['PO4'], 'CHOL':['ROH']}, 18, file_path='E:untitled2.csv')
-    cls2 = Area(u, {'POPC': ['NC3']}, 18, file_path='E:untitled2.csv')
+
+    gro_file = "../cases/lnb.gro"
+    xtc_file = "../cases/md.xtc"
+    csv_file = "../cases/csv/area_step5_lnb.csv"
+    u = mda.Universe(gro_file, xtc_file)
+    cls2 = Area(u, {'DPPC':['PO4'], 'DUPC':['PO4'], 'CHOL':['ROH']}, 18, file_path=csv_file)
     t1 = time.time()
-    cls2.run()
+    cls2.run(start=10, step=5, verbose=True)
     t2 = time.time()
     print('time', t2 - t1)

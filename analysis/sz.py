@@ -159,7 +159,7 @@ class SZ(AnalysisBase):
 
     def _prepare(self):
         self.results.SZ = np.full([self._n_residues, self.n_frames],
-                                  fill_value=np.NaN)
+                                  fill_value=np.nan)
 
     def _single_frame(self):
         head_positions = self.headAtoms.positions
@@ -207,11 +207,17 @@ class SZ(AnalysisBase):
     def _conclude(self):
         if self.file_path:
             lipids_ratio = {sp: self.u.select_atoms(f'resname {sp}').n_residues for sp in self.residues}
-            dict_parameter = {'step': self.step, 'n_frames': self.n_frames, 'resids': self.resids,
-                              'resnames': self.resnames,
-                              'positions': self.headAtoms.positions, 'results': self.results.SZ,
-                              'file_path': self.file_path, 'description': 'SZ',
-                              'parameters': self.parameters, 'lipids_type': lipids_ratio}
+            dict_parameter = {
+                'frames': [i for i in range(self.start, self.stop, self.step)]
+                , 'resids': self.resids
+                , 'resnames': self.resnames
+                , 'positions': self.headAtoms.positions
+                , 'results': self.results.SZ
+                , 'file_path': self.file_path
+                , 'description': 'SZ'
+                , 'parameters': self.parameters
+                , 'lipids_type': lipids_ratio
+            }
             WriteExcelLipids(**dict_parameter).run()
 
 
@@ -224,7 +230,10 @@ def ensure_consistent_normals(normals, vector):
 
 
 if __name__ == "__main__":
-    u = mda.Universe("E:/ach.gro", 'E:/ach.xtc')
+    gro_file = "../cases/lnb.gro"
+    xtc_file = "../cases/md.xtc"
+    csv_file = "../cases/csv/area_step5_lnb.csv"
+    u = mda.Universe(gro_file, xtc_file)
     cls2 = SZ(u, {'DPPC': ['PO4'], 'DAPC': ['PO4']}, 'Chain A', k=14, path='E:/untitled2.csv')
     cls2.run(0, 100, verbose=True)
 

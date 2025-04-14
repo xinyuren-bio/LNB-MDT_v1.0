@@ -34,7 +34,7 @@ class PCA(AnalysisBase):
         self.parametes = str(residuesGroup)
 
     def _prepare(self):
-        self.results.PCA = np.full([self.n_frames], fill_value=np.NaN)
+        self.results.PCA = np.full([self.n_frames], fill_value=np.nan)
 
     def _single_frame(self):
         head_pos = self.headAtoms.positions
@@ -49,15 +49,21 @@ class PCA(AnalysisBase):
 
     def _conclude(self):
         if self.filePath:
-            dict_parameter = {'step': self.step, 'n_frames': self.n_frames,
-                              'results': self.results.PCA,
-                              'file_path': self.filePath, 'description': 'PCA',
-                              'parameters': self.parametes}
+            dict_parameter = {
+                'frames': [i for i in range(self.start, self.stop, self.step)]
+                , 'results': self.results.PCA
+                , 'file_path': self.filePath
+                , 'description': 'PCA'
+                , 'parameters': self.parametes}
             WriteExcelBubble(**dict_parameter).run()
 
 
 if __name__ == '__main__':
     import MDAnalysis as mda
-    u = mda.Universe("E:/ach.gro", "E:/ach.xtc")
+
+    gro_file = "../cases/lnb.gro"
+    xtc_file = "../cases/md.xtc"
+    csv_file = "../cases/csv/area_step5_lnb.csv"
+    u = mda.Universe(gro_file, xtc_file)
     cls2 = PCA(u, ['DPPC','D3PC','CHOL'], filepath='E:/excel')
     cls2.run(1,100,1,verbose=True)

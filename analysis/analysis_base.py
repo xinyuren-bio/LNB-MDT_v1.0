@@ -175,8 +175,7 @@ class WriteExcel(ABC):
 @dataclass
 class WriteExcelLipids(WriteExcel):
     parameters: str
-    step: int
-    n_frames: int
+    frames: list
     resids: np.ndarray
     resnames: np.ndarray
     positions: np.ndarray[float]
@@ -186,7 +185,7 @@ class WriteExcelLipids(WriteExcel):
     lipids_type: dict
 
     def run(self):
-        column_frame = [i * self.step for i in range(self.n_frames)]
+        # column_frame = [i * self.step for i in range(self.n_frames)]
         # LIPID
         lipids_ratio = ':'.join(self.lipids_type) + '=' + ':'.join(map(str, self.lipids_type.values()))
         comments = ['Created by LNB-MDT v1.0', self.description, lipids_ratio, 'TYPE:Lipids', 'Parameters:' + self.parameters]
@@ -195,12 +194,12 @@ class WriteExcelLipids(WriteExcel):
             'Resname': self.resnames,
             'Coordinates': [f"{x:.2f},{y:.2f},{z:.2f}" for x, y, z in self.positions],
             **{str(frame): self.results[:, i].round(3)
-               for i, frame in enumerate(column_frame)}
+               for i, frame in enumerate(self.frames)},
         })
         # FRAME
         df_frames = pd.DataFrame(
             {
-                'Frames': column_frame
+                'Frames': self.frames
                 , 'Values': np.mean(self.results, axis=0).round(3)
             }
         )
@@ -214,17 +213,16 @@ class WriteExcelLipids(WriteExcel):
 
 @dataclass
 class WriteExcelBubble(WriteExcel):
-    step: int
-    n_frames: int
+    frames: int
     results: np.ndarray
     file_path: str
     description: str
     parameters: str
     def run(self):
-        column_frame = [i * self.step for i in range(self.n_frames)]
+        # column_frame = [i * self.step for i in range(self.n_frames)]
         df = pd.DataFrame(
             {
-                'Frames': column_frame
+                'Frames': self.frames
                 , 'Values': self.results.round(3)
             }
         )

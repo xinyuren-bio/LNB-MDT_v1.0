@@ -115,13 +115,13 @@ class Curvature(AnalysisBase):
 
     def _prepare(self):
         self.results.MeanCurvature = np.full([self._n_residues, self.n_frames]
-                                             , fill_value=np.NaN)
+                                             , fill_value=np.nan)
 
         self.results.GussainCurvature = np.full([self._n_residues, self.n_frames]
-                                                , fill_value=np.NaN)
+                                                , fill_value=np.nan)
 
         self.results.Normal = np.full([self._n_residues, self.n_frames, 3],
-                                      fill_value=np.NaN)
+                                      fill_value=np.nan)
 
     def _single_frame(self):
         head_positions = self.headAtoms.positions
@@ -158,11 +158,17 @@ class Curvature(AnalysisBase):
     def _conclude(self):
         if self.file_path:
             lipids_ratio = {sp: self.u.select_atoms(f'resname {sp}').n_residues for sp in self.residues}
-            dict_parameter = {'step': self.step, 'n_frames': self.n_frames, 'resids': self.resids,
-                              'resnames': self.resnames,
-                              'positions': self.headAtoms.positions, 'results': self.results.MeanCurvature,
-                              'file_path': self.file_path, 'description': 'Mean Curvature(nm -1)',
-                              'parameters': self.parameters, 'lipids_type': lipids_ratio}
+            dict_parameter = {
+                'frames': [i for i in range(self.start, self.stop, self.step)]
+                , 'resids': self.resids
+                , 'resnames': self.resnames
+                , 'positions': self.headAtoms.positions
+                , 'results': self.results.MeanCurvature
+                , 'file_path': self.file_path
+                , 'description': 'Mean Curvature(nm -1)'
+                , 'parameters': self.parameters
+                , 'lipids_type': lipids_ratio
+            }
             WriteExcelLipids(**dict_parameter).run()
 
 
@@ -247,12 +253,10 @@ def calculate_gaussian_curvature(coefficients):
 
 
 if __name__ == "__main__":
-    # 导入结构文件、轨迹文件（可选）
-    u = mda.Universe("E:/ach.gro", 'E:/ach.xtc')
-    # 上传参数：
-    #           1. 需要分析的残基及其相关原子
-    #           2. K值
-    #           3. 结果保存路径
+    gro_file = "../cases/lnb.gro"
+    xtc_file = "../cases/md.xtc"
+    csv_file = "../cases/csv/area_step5_lnb.csv"
+    u = mda.Universe(gro_file, xtc_file)
     cls = Curvature(u, {'DPPC': ['PO4'], 'DAPC': ['PO4'], 'CHOL': ['ROH']}, 20, path='E:/untitled.csv')
     # 执行计算
     cls.run(0, 100, verbose=True)

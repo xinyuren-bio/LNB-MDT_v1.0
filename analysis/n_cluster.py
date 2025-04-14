@@ -90,10 +90,12 @@ class NCluster(AnalysisBase):
 
     def _conclude(self):
         if self.file_path:
-            dict_parameter = {'step': self.step, 'n_frames': self.n_frames,
-                             'results': self.results.NCluster,
-                              'file_path': self.file_path, 'description': 'Number of Cluster',
-                              'parameters': self.parameters}
+            dict_parameter = {
+                'frames': [i for i in range(self.start, self.stop, self.step)]
+                , 'results': self.results.NCluster
+                , 'file_path': self.file_path
+                , 'description': 'Number of Cluster'
+                , 'parameters': self.parameters}
             WriteExcelBubble(**dict_parameter).run()
 
 
@@ -107,6 +109,10 @@ def make_data(residues_group):
 
 if __name__ == "__main__":
     import MDAnalysis as mda
-    u = mda.Universe('E:/ach.gro', 'E:/ach.xtc')
+
+    gro_file = "../cases/lnb.gro"
+    xtc_file = "../cases/md.xtc"
+    csv_file = "../cases/csv/area_step5_lnb.csv"
+    u = mda.Universe(gro_file, xtc_file)
     cls1 = NCluster(u, {'DAPC': ['GL1', 'GL2']}, cutoff=12, file_path='E:/untitled2.csv', N_cutoff=10)
     cls1.run(0, 100)
