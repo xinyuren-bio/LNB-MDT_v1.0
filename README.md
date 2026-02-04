@@ -122,8 +122,8 @@ If you use LNB-MDT in your research, please cite our paper:
    journal = {Journal of Chemical Information and Modeling},
    volume = {66},
    number = {1},
-   year = {2026},
-   month = {January},
+   year = {2025},
+   month = {December},
    doi = {10.1021/acs.jcim.5c02771},
    URL = {https://pubs.acs.org/doi/10.1021/acs.jcim.5c02771},
 }
