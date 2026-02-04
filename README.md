@@ -1,4 +1,4 @@
-# LNB-MDT v1.0.1
+# LNB-MDT
 
 ![LNB-MDT Logo](LNB-MDT.jpg)
 
@@ -122,8 +122,8 @@ If you use LNB-MDT in your research, please cite our paper:
    journal = {Journal of Chemical Information and Modeling},
    volume = {66},
    number = {1},
-   year = {2025},
-   month = {December},
+   year = {2026},
+   month = {January},
    doi = {10.1021/acs.jcim.5c02771},
    URL = {https://pubs.acs.org/doi/10.1021/acs.jcim.5c02771},
 }
@@ -135,4 +135,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**LNB-MDT v1.0** - Making lipid nanobubble simulations simpler and more efficient!
+**LNB-MDT** - Making lipid nanobubble simulations simpler and more efficient!
